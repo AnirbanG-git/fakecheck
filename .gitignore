@@ -31,3 +31,4 @@ data/*.csv
 .vscode/
 .DS_Store
 Thumbs.db
+data/WELFake.csv
