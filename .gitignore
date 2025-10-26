@@ -23,7 +23,6 @@ reports/week*/confidence_hist.png
 
 # Data and large files
 data/*.csv
-!data/WELFake.csv
 *.zip
 *.jsonl
 
