@@ -1,0 +1,33 @@
+# Python and notebooks
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Environment
+.venv/
+env/
+*.env
+*.egg-info/
+
+# Artifacts & temporary outputs
+artifacts/
+indexes/
+evidence_cache/
+evidence_cache_small/
+external_cache/
+reports/week*/plots/
+reports/week*/latency_box.png
+reports/week*/confidence_hist.png
+.cache
+
+# Data and large files
+data/*.csv
+!data/WELFake.csv
+*.zip
+*.jsonl
+
+# IDE and system files
+.vscode/
+.DS_Store
+Thumbs.db
