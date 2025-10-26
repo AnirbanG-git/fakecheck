@@ -1,0 +1,14 @@
+{
+  "n_explanations": 38,
+  "verdict_counts": {
+    "NOT_SUPPORTED": 9,
+    "SUPPORTED": 29
+  },
+  "avg_explanation_length": 873.71,
+  "avg_citations_per_claim": 3.87,
+  "percent_empty_urls": 50.34,
+  "mean_confidence_by_verdict": {
+    "NOT_SUPPORTED": 0.458,
+    "SUPPORTED": 0.575
+  }
+}

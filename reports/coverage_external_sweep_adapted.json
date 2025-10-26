@@ -1,0 +1,43 @@
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "dense_model": "./artifacts/miniLM_welfake",
+  "device": "cuda",
+  "sample_from_cache": false,
+  "thresholds": [
+    0.2,
+    0.25,
+    0.3,
+    0.35
+  ],
+  "coverage_by_threshold": {
+    "0.2": 0.94,
+    "0.25": 0.93,
+    "0.3": 0.87,
+    "0.35": 0.775
+  },
+  "count_thresholds": 4,
+  "per_source_by_threshold": {
+    "wikipedia": {
+      "0.2": 0.93,
+      "0.25": 0.855,
+      "0.3": 0.75,
+      "0.35": 0.63
+    },
+    "google_cse": {
+      "0.2": 0.925,
+      "0.25": 0.895,
+      "0.3": 0.855,
+      "0.35": 0.73
+    },
+    "fact_check": {
+      "0.2": 0.63,
+      "0.25": 0.575,
+      "0.3": 0.52,
+      "0.35": 0.445
+    }
+  }
+}

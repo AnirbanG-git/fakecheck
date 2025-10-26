@@ -1,0 +1,5 @@
+{
+  "sample": 200,
+  "top_k": 10,
+  "coverage": 0.99
+}

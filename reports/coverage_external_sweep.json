@@ -1,0 +1,43 @@
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "device": "cuda",
+  "sample_from_cache": false,
+  "thresholds": [
+    0.2,
+    0.25,
+    0.3,
+    0.35
+  ],
+  "coverage_by_threshold": {
+    "0.2": 0.935,
+    "0.25": 0.925,
+    "0.3": 0.86,
+    "0.35": 0.76
+  },
+  "count_thresholds": 4,
+  "per_source_by_threshold": {
+    "wikipedia": {
+      "0.2": 0.92,
+      "0.25": 0.845,
+      "0.3": 0.735,
+      "0.35": 0.615
+    },
+    "google_cse": {
+      "0.2": 0.92,
+      "0.25": 0.89,
+      "0.3": 0.85,
+      "0.35": 0.715
+    },
+    "fact_check": {
+      "0.2": 0.625,
+      "0.25": 0.575,
+      "0.3": 0.51,
+      "0.35": 0.435
+    }
+  }
+}

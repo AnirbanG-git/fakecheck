@@ -1,0 +1,747 @@
+week 1
+----
+EDA (quick)
+python scripts/eda_summary.py --csv data/WELFake.csv --out reports/eda_summary.json
+
+baseline training & metrics
+python scripts/run_baseline.py --csv data/WELFake.csv --out_dir artifacts --report reports/metrics_baseline.json
+
+python -m scripts.run_baseline --csv data/WELFake.csv --out_dir artifacts --report reports/metrics_baseline.json
+
+Saved model to artifacts/baseline_tfidf_lr.joblib
+Metrics: {
+  "accuracy": 0.9550873301912947,
+  "precision": 0.9469517022961204,
+  "recall": 0.9668552950687146,
+  "f1": 0.9568,
+  "auroc": 0.9901451833294064
+}
+
+🧮 1. interpreting the metrics
+metric	value	what it means
+accuracy	0.9551 → 95.5 %	proportion of all news items (real + fake) correctly classified. out of every 100 articles, about 95 are labeled correctly.
+precision	0.947 → 94.7 %	among the items predicted as fake, this is the fraction that truly are fake.
+high precision ⇒ few false alarms (rarely tags real news as fake).
+recall	0.967 → 96.7 %	among all the actually fake items, this is the fraction your model caught.
+high recall ⇒ few missed fakes.
+f1	0.9568 ≈ 95.7 %	harmonic mean of precision and recall.
+balances both; a perfect classifier = 1.0.
+auroc	0.990 ≈ 99 %	“Area Under the Receiver Operating Characteristic Curve.” measures how well the model ranks real vs fake regardless of threshold.
+1.0 = perfect separation, 0.5 = random guessing.
+0.99 means your TF-IDF + LR baseline distinguishes the classes almost perfectly.
+quick read:
+
+precision ≈ 95 %, recall ≈ 97 % → balanced.
+
+AUROC ≈ 0.99 → your feature space (TF-IDF bigrams) is already very discriminative on WELFake.
+
+F1 ≈ 0.956 → this baseline is strong; later models must justify extra complexity with explainability and generalization rather than raw accuracy.
+
+week 2 
+--
+
+import numpy, faiss
+print("NumPy:", numpy.__version__)
+print("FAISS GPU available?:", hasattr(faiss, "StandardGpuResources"))
+PY
+
+
+PYTHONPATH=. python scripts/hybrid_retrieve.py   --csv data/WELFake.csv --claim_id 123 --top_k 10 \
+  --dense_model sentence-transformers/all-MiniLM-L6-v2   --device auto --batch_size 128 \
+    --index_dir indexes/welfake_dense   --out_dir evidence_cache   --exclude_self
+
+modules.json: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 387/387 [00:00<00:00, 517kB/s]
+README.md: 67.6kB [00:00, 259kB/s]
+sentence_bert_config.json: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 57.0/57.0 [00:00<00:00, 161kB/s]
+config.json: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 650/650 [00:00<00:00, 804kB/s]
+model.safetensors: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 438M/438M [03:01<00:00, 2.41MB/s]
+tokenizer_config.json: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 314/314 [00:00<00:00, 2.36MB/s]
+vocab.txt: 232kB [00:00, 296kB/s] 
+tokenizer.json: 711kB [00:00, 2.58MB/s]
+special_tokens_map.json: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 125/125 [00:00<00:00, 331kB/s]
+config.json: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 200/200 [00:00<00:00, 560kB/s]
+Batches: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2255/2255 [1:20:29<00:00,  2.14s/it]
+✅ Saved FAISS index to indexes/welfake_dense
+Saved evidence for claim_id=123 → evidence_cache/123.json
+
+next time
+PYTHONPATH=. python scripts/hybrid_retrieve.py   --csv data/WELFake.csv --claim_id 456 --top_k 10   --reuse_index --index_dir indexes/welfake_dense   --out_dir evidence_cache --exclude_self
+torch.cuda.is_available(): True
+CUDA device: NVIDIA H100 80GB HBM3
+DenseRetriever model device: cuda:0
+✅ Loaded FAISS index from indexes/welfake_dense (dim=384)
+Batches: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00,  1.48it/s]
+ 
+
+(fakecheck) AGANGOPA@AGANGOPA-mac fakecheck % 
+PYTHONPATH=. python scripts/coverage_report.py --csv data/WELFake.csv --sample 200 --top_k 10 --reuse_index --index_dir indexes/welfake_dense --exclude_self --out reports/retrieval_coverage.json
+
+
+{
+  "sample": 200,
+  "top_k": 10,
+  "coverage": 0.99
+}
+
+week 3
+------
+# python -m spacy download en_core_web_sm
+python -m spacy validate
+✔ Loaded compatibility table
+
+================= Installed pipeline packages (spaCy v3.7.5) =================
+ℹ spaCy installation:
+/root/fakecheck/.venv/lib/python3.10/site-packages/spacy
+
+NAME             SPACY            VERSION                            
+en_core_web_sm   >=3.7.2,<3.8.0   3.7.1   ✔
+
+
+export HF_HOME="/root/fakecheck/.cache/huggingface"
+export SENTENCE_TRANSFORMERS_HOME="/root/fakecheck/.cache/huggingface"
+
+cmd 1
+-
+PYTHONPATH=. python scripts/augment_external_evidence.py   --csv data/WELFake.csv --claim_id 123 --top_k 10   --device auto --batch_size 128 --time_window_days 45   --max_per_domain 2 --dedup_cos 0.95   --boost_trusted 1.2 --penalize_lowcred 0.6   --fc_retries 3 --fc_timeout_s 12 --fc_max_pages 3 --fc_min_results_to_stop 6
+Augmented claim_id=123 → evidence_cache/123.json
+
+
+your augment_external_evidence.py run for claim_id=123 worked, and I can see the updated JSON you attached. Here’s what that file tells us and what to do next.
+
+What’s now inside evidence_cache/123.json
+
+The claim/article itself (about Robert Mugabe resigning) is stored as claim_text, with label 0 (i.e., real/true in your pipeline).
+
+Your original hybrid retrieval (BM25 + dense + fused) over WELFake is still there under retrieval.
+
+New: external evidence entries are present. For example, I can see Google CSE hits like BBC and Al Jazeera corroborating the same event and date range (Nov 2017)
+
+
+cmd 2 
+---
+
+PYTHONPATH=. python scripts/build_local_cache_batch.py   --csv data/WELFake.csv   --sample 200 --seed 42   --top_k 10   --out_dir evidence_cache   --dense_model sentence-transformers/all-MiniLM-L6-v2   --device auto --batch_size 128   --index_dir indexes/welfake_dense   --reuse_index   --exclude_self
+Done. Processed=200, Skipped=0, Errors=0, OutDir=evidence_cache
+
+cmd 3
+-
+PYTHONPATH=. python scripts/augment_external_evidence.py   --csv data/WELFake.csv --top_k 10   --device auto --batch_size 128   --max_per_domain 2 --dedup_cos 0.95 --time_window_days 45   --fc_retries 3 --fc_timeout_s 12 --fc_max_pages 3 --fc_min_results_to_stop 6
+sample o/p
+Augmented claim_id=70284 → evidence_cache/70284.json
+[INFO] FactCheck zero hits. Queries tried: ['Rodrigo Duterte become later', 'Rodrigo Duterte become', 'Becoming Duterte'] ...
+Augmented claim_id=71358 → evidence_cache/71358.json
+Augmented claim_id=71426 → evidence_cache/71426.json
+Augmented claim_id=71482 → evidence_cache/71482.json
+Augmented claim_id=71579 → evidence_cache/71579.json
+
+cmd 4
+-
+PYTHONPATH=. python scripts/coverage_external.py \
+  --csv data/WELFake.csv --sample 200 --seed 42 \
+  --prefer_ranked --sample_from_cache \
+  --semantic_filter --cos_thresh 0.25 \
+  --dense_model sentence-transformers/all-MiniLM-L6-v2 \
+  --device auto --batch_size 128 \
+  --per_source \
+  --cache_dir evidence_cache \
+  --out reports/coverage_external.json
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "cos_thresh": 0.25,
+  "coverage_external": 0.935,
+  "device": "cuda",
+  "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "sample_from_cache": true,
+  "per_source": {
+    "wikipedia": 0.825,
+    "google_cse": 0.91,
+    "fact_check": 0.615
+  }
+}
+
+---
+
+week 4
+
+1) Build the verifier dataset
+File: scripts/make_verifier_dataset.py
+
+PYTHONPATH=. python scripts/make_verifier_dataset.py \
+  --cache_dir evidence_cache \
+  --out reports/verifier_dataset.jsonl \
+  --top_k 5 \
+  --max_chars 4000 \
+  --min_semantic_cos 0.25 \
+  --encoder sentence-transformers/all-MiniLM-L6-v2 \
+  --seed 42 --test_size 0.15 --val_size 0.15 \
+  --verbose
+[INFO] scanning 253 files under evidence_cache
+[OK] Wrote 253 rows → reports/verifier_dataset.jsonl
+[SPLITS] {'train': 182, 'test': 38, 'validation': 33}
+[LABELS] {1: 131, 0: 122}
+[DROPS] {'bad_json': 0, 'no_claim': 0, 'no_label': 0, 'no_evidence': 0, 'empty_after_filter': 0}
+
+
+
+2) Verifier v1 — TF-IDF + Logistic Regression
+File: scripts/train_verifier_lr.py
+
+PYTHONPATH=. python scripts/train_verifier_lr.py \
+  --dataset reports/verifier_dataset.jsonl \
+  --out_dir artifacts/verifier_lr \
+  --report reports/metrics_verifier_lr.json
+/root/fakecheck/.venv/lib/python3.10/site-packages/sklearn/calibration.py:330: FutureWarning: The `cv='prefit'` option is deprecated in 1.6 and will be removed in 1.8. You can use CalibratedClassifierCV(FrozenEstimator(estimator)) instead.
+  warnings.warn(
+{
+  "accuracy": 0.7631578947368421,
+  "precision": 0.6896551724137931,
+  "recall": 1.0,
+  "f1": 0.8163265306122449,
+  "auroc": 0.8666666666666667,
+  "n_test": 38,
+  "threshold": 0.17,
+  "confusion_matrix": [
+    [
+      9,
+      9
+    ],
+    [
+      0,
+      20
+    ]
+  ]
+}
+Saved model to artifacts/verifier_lr/verifier_lr.joblib
+Wrote preds to artifacts/verifier_lr/preds_verifier_lr.jsonl
+
+
+3) Verifier v2 — small transformer (DistilBERT)
+
+File: scripts/train_verifier_bert.py
+PYTHONPATH=. python scripts/train_verifier_bert.py   --dataset reports/verifier_dataset.jsonl   --model_name distilbert-base-uncased   --out_dir artifacts/verifier_bert   --report reports/metrics_verifier_bert.json   --max_length 512 --epochs 4 --batch_size 16   --lr 2e-5 --weight_decay 0.01   --early_stopping --tune_threshold
+Map: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 182/182 [00:00<00:00, 2438.05 examples/s]
+Map: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 33/33 [00:00<00:00, 2605.21 examples/s]
+Map: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 38/38 [00:00<00:00, 2520.70 examples/s]
+Some weights of DistilBertForSequenceClassification were not initialized from the model checkpoint at distilbert-base-uncased and are newly initialized: ['classifier.bias', 'classifier.weight', 'pre_classifier.bias', 'pre_classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/root/fakecheck/scripts/train_verifier_bert.py:136: FutureWarning: `tokenizer` is deprecated and will be removed in version 5.0.0 for `Trainer.__init__`. Use `processing_class` instead.
+  trainer = Trainer(
+{'eval_loss': 0.6304228901863098, 'eval_accuracy': 0.7272727272727273, 'eval_precision': 0.6818181818181818, 'eval_recall': 0.8823529411764706, 'eval_f1': 0.7692307692307693, 'eval_auroc': 0.8051470588235294, 'eval_runtime': 1.3973, 'eval_samples_per_second': 23.618, 'eval_steps_per_second': 2.147, 'epoch': 1.0}                                                                                                                             
+{'eval_loss': 0.5374348759651184, 'eval_accuracy': 0.7575757575757576, 'eval_precision': 0.7142857142857143, 'eval_recall': 0.8823529411764706, 'eval_f1': 0.7894736842105263, 'eval_auroc': 0.8529411764705883, 'eval_runtime': 0.0262, 'eval_samples_per_second': 1260.216, 'eval_steps_per_second': 114.565, 'epoch': 2.0}                                                                                                                         
+{'eval_loss': 0.48281028866767883, 'eval_accuracy': 0.7575757575757576, 'eval_precision': 0.7142857142857143, 'eval_recall': 0.8823529411764706, 'eval_f1': 0.7894736842105263, 'eval_auroc': 0.8713235294117647, 'eval_runtime': 0.0254, 'eval_samples_per_second': 1299.961, 'eval_steps_per_second': 118.178, 'epoch': 3.0}                                                                                                                        
+{'eval_loss': 0.47142261266708374, 'eval_accuracy': 0.7878787878787878, 'eval_precision': 0.75, 'eval_recall': 0.8823529411764706, 'eval_f1': 0.8108108108108109, 'eval_auroc': 0.8786764705882353, 'eval_runtime': 0.0251, 'eval_samples_per_second': 1316.505, 'eval_steps_per_second': 119.682, 'epoch': 4.0}                                                                                                                                      
+{'train_runtime': 7.866, 'train_samples_per_second': 92.551, 'train_steps_per_second': 6.102, 'train_loss': 0.45408300558725995, 'epoch': 4.0}                                                                             
+100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 48/48 [00:07<00:00,  6.10it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:00<00:00, 225.61it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:00<00:00,  6.77it/s]
+{
+  "eval_loss": 0.42466169595718384,
+  "eval_accuracy": 0.7105263157894737,
+  "eval_precision": 0.6956521739130435,
+  "eval_recall": 0.8,
+  "eval_f1": 0.7441860465116279,
+  "eval_auroc": 0.8861111111111111,
+  "tuned": {
+    "accuracy": 0.6842105263157895,
+    "precision": 0.625,
+    "recall": 1.0,
+    "f1": 0.7692307692307693,
+    "auroc": 0.8861111111111111,
+    "threshold": 0.18,
+    "n_test": 38
+  }
+}
+Saved model to artifacts/verifier_bert
+Wrote preds to artifacts/verifier_bert/preds_verifier_bert.jsonl
+
+4) ...... 
+
+PYTHONPATH=. python scripts/coverage_external.py \
+  --csv data/WELFake.csv \
+  --sample 200 --seed 42 \
+  --cache_dir evidence_cache \
+  --dense_model sentence-transformers/all-MiniLM-L6-v2 \
+  --device auto --batch_size 128 \
+  --prefer_ranked \
+  --cos_sweep 0.20,0.25,0.30,0.35 \
+  --per_source \
+  --out reports/coverage_external_sweep.json
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "device": "cuda",
+  "sample_from_cache": false,
+  "thresholds": [
+    0.2,
+    0.25,
+    0.3,
+    0.35
+  ],
+  "coverage_by_threshold": {
+    "0.2": 0.935,
+    "0.25": 0.925,
+    "0.3": 0.86,
+    "0.35": 0.76
+  },
+  "count_thresholds": 4,
+  "per_source_by_threshold": {
+    "wikipedia": {
+      "0.2": 0.92,
+      "0.25": 0.845,
+      "0.3": 0.735,
+      "0.35": 0.615
+    },
+    "google_cse": {
+      "0.2": 0.92,
+      "0.25": 0.89,
+      "0.3": 0.85,
+      "0.35": 0.715
+    },
+    "fact_check": {
+      "0.2": 0.625,
+      "0.25": 0.575,
+      "0.3": 0.51,
+      "0.35": 0.435
+    }
+  }
+}
+
+
+Nice — that output means your MiniLM adapter trained cleanly:
+
+train_runtime ~0.94s for 1 epoch on your pair set (fast sanity-tune).
+
+train_loss ≈ 0.121 with CosineSimilarityLoss → the encoder learned to pull claim ↔ evidence closer.
+
+The model is saved locally at artifacts/miniLM_welfake/ (we’ll use this path directly, no Hugging Face token needed).
+
+Step 5 → Next actions with the adapted encoder
+
+We’ll (A) rebuild the dataset using the adapted encoder (improves which evidence survives the semantic filter), (B) re-train the verifiers on that refreshed dataset, and (C) re-run the coverage sweep with the adapted encoder.
+
+A) Rebuild dataset with adapted encoder
+PYTHONPATH=. python scripts/make_verifier_dataset.py \
+  --cache_dir evidence_cache \
+  --out reports/verifier_dataset.jsonl \
+  --top_k 5 \
+  --max_chars 4000 \
+  --min_semantic_cos 0.25 \
+  --encoder ./artifacts/miniLM_welfake \
+  --seed 42 --test_size 0.15 --val_size 0.15 --verbose
+[INFO] scanning 253 files under evidence_cache
+[OK] Wrote 253 rows → reports/verifier_dataset.jsonl
+[SPLITS] {'train': 182, 'test': 38, 'validation': 33}
+[LABELS] {1: 131, 0: 122}
+[DROPS] {'bad_json': 0, 'no_claim': 0, 'no_label': 0, 'no_evidence': 0, 'empty_after_filter': 0}  
+
+B) Retrain verifiers on the refreshed dataset
+LR baseline
+PYTHONPATH=. python scripts/train_verifier_lr.py \
+  --dataset reports/verifier_dataset.jsonl \
+  --out_dir artifacts/verifier_lr \
+  --report reports/metrics_verifier_lr.json
+{
+  "accuracy": 0.7368421052631579,
+  "precision": 0.6785714285714286,
+  "recall": 0.95,
+  "f1": 0.7916666666666666,
+  "auroc": 0.8611111111111112,
+  "n_test": 38,
+  "threshold": 0.17,
+  "confusion_matrix": [
+    [
+      9,
+      9
+    ],
+    [
+      1,
+      19
+    ]
+  ]
+}
+Saved model to artifacts/verifier_lr/verifier_lr.joblib
+Wrote preds to artifacts/verifier_lr/preds_verifier_lr.jsonl  
+
+DistilBERT verifier
+PYTHONPATH=. python scripts/train_verifier_bert.py \
+  --dataset reports/verifier_dataset.jsonl \
+  --model_name distilbert-base-uncased \
+  --out_dir artifacts/verifier_bert \
+  --report reports/metrics_verifier_bert.json \
+  --max_length 512 --epochs 4 --batch_size 16 \
+  --lr 2e-5 --weight_decay 0.01 \
+  --early_stopping --tune_threshold
+{
+  "eval_loss": 0.6080899238586426,
+  "eval_accuracy": 0.7631578947368421,
+  "eval_precision": 0.6896551724137931,
+  "eval_recall": 1.0,
+  "eval_f1": 0.8163265306122449,
+  "eval_auroc": 0.8861111111111112,
+  "tuned": {
+    "accuracy": 0.7631578947368421,
+    "precision": 0.6896551724137931,
+    "recall": 1.0,
+    "f1": 0.8163265306122449,
+    "auroc": 0.8861111111111112,
+    "threshold": 0.51,
+    "n_test": 38
+  }
+}
+Saved model to artifacts/verifier_bert
+Wrote preds to artifacts/verifier_bert/preds_verifier_bert.jsonl  
+
+C) Coverage sweep with adapted encoder
+PYTHONPATH=. python scripts/coverage_external.py \
+  --csv data/WELFake.csv \
+  --sample 200 --seed 42 \
+  --cache_dir evidence_cache \
+  --dense_model ./artifacts/miniLM_welfake \
+  --device auto --batch_size 128 \
+  --prefer_ranked \
+  --cos_sweep 0.20,0.25,0.30,0.35 \
+  --per_source \
+  --out reports/coverage_external_sweep_adapted.json
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "dense_model": "./artifacts/miniLM_welfake",
+  "device": "cuda",
+  "sample_from_cache": false,
+  "thresholds": [
+    0.2,
+    0.25,
+    0.3,
+    0.35
+  ],
+  "coverage_by_threshold": {
+    "0.2": 0.94,
+    "0.25": 0.93,
+    "0.3": 0.87,
+    "0.35": 0.775
+  },
+  "count_thresholds": 4,
+  "per_source_by_threshold": {
+    "wikipedia": {
+      "0.2": 0.93,
+      "0.25": 0.855,
+      "0.3": 0.75,
+      "0.35": 0.63
+    },
+    "google_cse": {
+      "0.2": 0.925,
+      "0.25": 0.895,
+      "0.3": 0.855,
+      "0.35": 0.73
+    },
+    "fact_check": {
+      "0.2": 0.63,
+      "0.25": 0.575,
+      "0.3": 0.52,
+      "0.35": 0.445
+    }
+  }
+}
+
+Share the two updated metric JSONs and the adapted sweep JSON when done.
+Once you’ve finished:
+
+Verify that these files were produced:
+
+reports/metrics_verifier_lr.json
+
+reports/metrics_verifier_bert.json
+
+reports/coverage_external_sweep_adapted.json
+
+************contents of above json files**************
+metrics_verifier_lr.json
+{
+  "accuracy": 0.7368421052631579,
+  "precision": 0.6785714285714286,
+  "recall": 0.95,
+  "f1": 0.7916666666666666,
+  "auroc": 0.8611111111111112,
+  "n_test": 38,
+  "threshold": 0.17,
+  "confusion_matrix": [
+    [
+      9,
+      9
+    ],
+    [
+      1,
+      19
+    ]
+  ]
+
+metrics_verifier_bert.json
+{
+  "eval_loss": 0.6080899238586426,
+  "eval_accuracy": 0.7631578947368421,
+  "eval_precision": 0.6896551724137931,
+  "eval_recall": 1.0,
+  "eval_f1": 0.8163265306122449,
+  "eval_auroc": 0.8861111111111112,
+  "tuned": {
+    "accuracy": 0.7631578947368421,
+    "precision": 0.6896551724137931,
+    "recall": 1.0,
+    "f1": 0.8163265306122449,
+    "auroc": 0.8861111111111112,
+    "threshold": 0.51,
+    "n_test": 38
+  }
+}}
+
+reports/coverage_external_sweep_adapted.json
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "dense_model": "./artifacts/miniLM_welfake",
+  "device": "cuda",
+  "sample_from_cache": false,
+  "thresholds": [
+    0.2,
+    0.25,
+    0.3,
+    0.35
+  ],
+  "coverage_by_threshold": {
+    "0.2": 0.94,
+    "0.25": 0.93,
+    "0.3": 0.87,
+    "0.35": 0.775
+  },
+  "count_thresholds": 4,
+  "per_source_by_threshold": {
+    "wikipedia": {
+      "0.2": 0.93,
+      "0.25": 0.855,
+      "0.3": 0.75,
+      "0.35": 0.63
+    },
+    "google_cse": {
+      "0.2": 0.925,
+      "0.25": 0.895,
+      "0.3": 0.855,
+      "0.35": 0.73
+    },
+    "fact_check": {
+      "0.2": 0.63,
+      "0.25": 0.575,
+      "0.3": 0.52,
+      "0.35": 0.445
+    }
+  }
+}
+
+6. generate_explanations
+
+ PYTHONPATH=. python scripts/generate_explanations.py \
+  --in_dir evidence_cache \
+  --preds artifacts/verifier_bert/preds_verifier_bert.jsonl \
+  --out reports/explanations.jsonl \
+  --encoder ./artifacts/miniLM_welfake \
+  --device auto --batch_size 128 \
+  --sentences_per_source 2 --max_total_sentences 5 --min_sim 0.25
+Wrote explanations to reports/explanations.jsonl
+
+7. PYTHONPATH=. python scripts/merge_week4_report.py
+Wrote combined summary → reports/week4_summary.json
+
+---
+
+week 5
+
+-
+
+cmd 1
+--
+PYTHONPATH=. python scripts/run_agent_cli.py \
+  --claim "141 people were arrested at a protest of the Dakota Access Pipeline." \
+  --mode bert \
+  --csv data/WELFake.csv \
+  --threshold 0.45 \
+  --dense_index_dir indexes/welfake_dense \
+  --out reports/demo_claim_post_refinements.json
+Wrote reports/demo_claim_post_refinements.json
+
+Wrote reports/demo_claim_post_refinements.json
+
+(not needed) streamlit run streamlit_app.py (not needed)
+
+cmd 2
+--
+PYTHONPATH=. python scripts/run_25_test_claims.py
+Wrote reports/week5_graph_run.jsonl
+
+
+
+That’s Week 5 ✅
+
+
+Week 6 — Experimental Design (WELFake)
+----
+
+What we’ll compare
+
+Baseline-LR (internal only): TF-IDF + LR verifier (your artifacts/verifier_lr/*.joblib) using only internal evidence.
+
+Baseline-BERT (internal only): your artifacts/verifier_bert/ using only internal evidence.
+
+Agentic-BERT (internal + external): your end-to-end agent (BM25+E5+cache) + BERT verifier + explainer.
+
+Same test split (from reports/verifier_dataset.jsonl) for all; same label space; identical metrics.
+
+Metrics we’ll report
+
+Accuracy, Precision, Recall, F1, AUROC
+
+Retrieval Coverage: % claims with ≥1 internal hit; % with ≥1 external snippet (agentic only)
+
+Confusion Matrix
+
+Calibration snapshot (optional: ECE)
+
+(Optional) explanation length/readability as a proxy
+
+Statistical test
+
+McNemar’s test (baseline vs agentic on test split) to show if accuracy differences are significant.
+
+0) Assumptions / Paths
+
+Dataset/index already present:
+
+data/WELFake.csv
+
+reports/verifier_dataset.jsonl (has {id, label, split})
+
+artifacts/e5_base/ (FAISS)
+
+artifacts/verifier_lr/*.joblib
+
+artifacts/verifier_bert/
+
+evidence_cache/*.json (external cache)
+
+If any are in other paths, just tweak the args.
+
+----
+
+week 6
+---
+
+-----
+cmd 1
+------
+
+PYTHONPATH=. python scripts/run_25_from_csv_titles.py
+Wrote reports/week5_graph_run.jsonl
+{
+  "n": 25,
+  "accuracy": 0.72,
+  "precision": 0.875,
+  "recall": 0.5384615384615384,
+  "f1": 0.6666666666666666,
+  "auroc": 0.8974358974358975,
+  "latency_ms_summary": {
+    "count": 25,
+    "mean": 389.84,
+    "median": 363.0,
+    "p90": 526.8
+  }
+}
+
+cmd 2
+---
+
+PYTHONPATH=. python scripts/compare_models_week6.py \
+  --pipeline_pred reports/week5_graph_run.jsonl \
+  --labels_jsonl reports/verifier_dataset.jsonl \
+  --truth_csv data/WELFake.csv \
+  --lr_artifact artifacts/verifier_lr/baseline_tfidf_lr.joblib \
+  --bert_dir artifacts/verifier_bert \
+  --out_dir reports/week6
+          model  accuracy  precision   recall       f1    auroc  n
+    Baseline_LR      0.68   0.619048 1.000000 0.764706 0.871795 25
+Standalone_BERT      0.52   0.520000 1.000000 0.684211 0.762821 25
+       Pipeline      0.72   0.875000 0.538462 0.666667 0.897436 25
+
+
+cmd 3
+---
+
+PYTHONPATH=. python scripts/error_analysis_week6.py \
+  --pred reports/week5_graph_run.jsonl \
+  --truth_csv data/WELFake.csv \
+  --labels_jsonl reports/verifier_dataset.jsonl \
+  --k 15
+Total evaluated: 25 | Errors: 7
+
+----------------------------------------------------------------------------------------------------
+ID: 19574
+CLAIM: Bruce Springsteen Rips ’Con Man’ Trump in Protest Song
+PRED=1  GOLD=0  p=0.57
+EVIDENCE: Bruce Springsteen Rips 'Con Man' Trump in Protest Song Bruce Springsteen blasts President Donald Trump as a "con man" and calls his administration "crooks" in…
+----------------------------------------------------------------------------------------------------
+ID: 27811
+CLAIM: FBI WARNS Of Potential Terror Attack At SUPER BOWL…White House Completely Silent
+PRED=0  GOLD=1  p=0.54
+EVIDENCE: FBI WARNS Of Potential Terror Attack At SUPER BOWL…White House Completely Silent Wouldn t it be great if the Obama administration came out with something…
+----------------------------------------------------------------------------------------------------
+ID: 32905
+CLAIM: SHERIFF DAVID CLARKE Picked For Key Position In Trump Administration..Aren’t We Lucky!
+PRED=0  GOLD=1  p=0.50
+EVIDENCE: SHERIFF DAVID CLARKE Picked For Key Position In Trump Administration..Aren't We Lucky! What a great pick by the Trump administration!The Trump administration…
+----------------------------------------------------------------------------------------------------
+ID: 33320
+CLAIM: (VIDEO) BREAKING: WHY OBAMA WAS SNUBBED BY SAUDI AND OTHER ARAB LEADERS IN SECURITY SUMMIT
+PRED=0  GOLD=1  p=0.52
+EVIDENCE: (VIDEO) BREAKING: WHY OBAMA WAS SNUBBED BY SAUDI AND OTHER ARAB LEADERS IN SECURITY SUMMIT It s a snub don t believe the pundits on this one. It s concern over…
+----------------------------------------------------------------------------------------------------
+ID: 38903
+CLAIM: Range of BrahMos cruise missile to be doubled
+PRED=0  GOLD=1  p=0.53
+EVIDENCE: Range of BrahMos cruise missile to be doubled Range of BrahMos cruise missile to be doubled 28 October 2016 Sputnik The range of BrahMos missile may be…
+----------------------------------------------------------------------------------------------------
+ID: 46991
+CLAIM: MUSLIM FAMILY Swindles Millions From Taxpayers…Federal Policy Gives “Lighter Sentence”
+PRED=0  GOLD=1  p=0.51
+EVIDENCE: MUSLIM FAMILY Swindles Millions From Taxpayers…Federal Policy Gives "Lighter Sentence" Undisputed Facts:An Oak Creek woman and her son have been indicted on…
+----------------------------------------------------------------------------------------------------
+ID: 48472
+CLAIM: The Eighth Person In Trump Tower Meeting Is Linked To Money Laundering
+PRED=0  GOLD=1  p=0.54
+EVIDENCE: The Eighth Person In Trump Tower Meeting Is Linked To Money Laundering The story of Donald Trump Jr. s 2016 meeting with a Russian lawyer capable of providing…
+
+
+Visual deliverables (now in reports/week6)
+
+✅ final_metrics.json – aggregated metrics
+
+✅ model_comparison.png – F1 vs AUROC bars
+
+✅ roc.png, confusion_matrix.png, confidence_hist.png, latency_box.png
+
+✅ coverage_vs_threshold.png – sensitivity curve
+
+These go directly into Chapter 5 (Experimental Results) figures.
+
+
+

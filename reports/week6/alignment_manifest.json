@@ -1,0 +1,7 @@
+{
+  "used_labels_jsonl": true,
+  "aligned_count": 25,
+  "total_pipeline": 25,
+  "out_dir": "reports/week6",
+  "notes": "Alignment prefers verifier_dataset.jsonl by id; falls back to claim-text; then optional CSV by id."
+}

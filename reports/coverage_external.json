@@ -1,0 +1,17 @@
+{
+  "sample": 200,
+  "examined": 200,
+  "missing_cache_files": 0,
+  "prefer_ranked": true,
+  "semantic_filter": true,
+  "cos_thresh": 0.25,
+  "coverage_external": 0.935,
+  "device": "cuda",
+  "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "sample_from_cache": true,
+  "per_source": {
+    "wikipedia": 0.825,
+    "google_cse": 0.91,
+    "fact_check": 0.615
+  }
+}

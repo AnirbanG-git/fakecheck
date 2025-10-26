@@ -1,0 +1,16 @@
+{
+  "rows": 72134,
+  "columns": [
+    "title",
+    "text",
+    "label"
+  ],
+  "label_counts": {
+    "1": 37106,
+    "0": 35028
+  },
+  "text_tokens_mean": 540.5509329858319,
+  "text_tokens_median": 398.0,
+  "title_tokens_mean": 12.173316327945214,
+  "title_tokens_median": 12.0
+}
